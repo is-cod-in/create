@@ -1,0 +1,4 @@
+A subdomain1 192.0.2.1
+CNAME subdomain1 target.com proxied
+MX subdomain1 mailserver.com 20
+TXT subdomain1 "Some text record"
