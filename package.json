@@ -1,0 +1,11 @@
+{
+  "name": "create",
+  "version": "1.0.0",
+  "main": "processDns.js",
+  "scripts": {
+    "start": "node processDns.js"
+  },
+  "dependencies": {
+    "axios": "^0.21.1"
+  }
+}
