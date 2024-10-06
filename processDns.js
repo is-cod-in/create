@@ -35,7 +35,7 @@ function parseDNSRecord(content, subdomain) {
             type: recordType,
             subdomain: subdomain,
             value: parts[2],
-            priority: parts[1] // MX records include priority as second part
+            priority: parts[1] // Priority for MX records
         };
     }
 
@@ -44,7 +44,7 @@ function parseDNSRecord(content, subdomain) {
             type: recordType,
             subdomain: subdomain,
             value: parts[2],
-            proxied: parts[3] === 'proxied' // CNAME record may include proxy status
+            proxied: parts[3] === 'proxied' // Proxy status for CNAME
         };
     }
 
@@ -66,7 +66,7 @@ async function addDNSRecord(record) {
         name: `${record.subdomain}.is-cod.in`,
         content: record.value,
         ttl: 1,
-        proxied: record.type === 'CNAME' ? record.proxied : false // Proxy status for CNAME
+        proxied: record.type === 'CNAME' ? record.proxied : false
     };
 
     if (record.type === 'MX') {
@@ -80,7 +80,12 @@ async function addDNSRecord(record) {
                 'Content-Type': 'application/json'
             }
         });
-        console.log(`Added DNS record: ${JSON.stringify(response.data)}`);
+
+        if (response.data.success) {
+            console.log(`Added DNS record: ${JSON.stringify(response.data.result)}`);
+        } else {
+            console.error(`Failed to add DNS record: ${JSON.stringify(response.data.errors)}`);
+        }
     } catch (error) {
         console.error(`Error adding DNS record: ${error.response ? error.response.data : error.message}`);
     }
