@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-const CLOUDFLARE_API_URL = `https://api.cloudflare.com/client/v4/zones/YOUR_ZONE_ID/dns_records`;
+const CLOUDFLARE_API_URL = `https://api.cloudflare.com/client/v4/zones/bdae6f399c757c2326b0539fe18151a2/dns_records`;
 
 async function processPullRequest() {
     const recordsDir = path.join(__dirname, 'records');
