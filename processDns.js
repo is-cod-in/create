@@ -28,30 +28,31 @@ async function processPullRequest() {
 
 function parseDNSRecord(content, subdomain) {
     const parts = content.split(' ');
-    const type = parts[0].toUpperCase();
-    let record;
+    const recordType = parts[0];
 
-    switch (type) {
-        case 'A':
-        case 'TXT':
-            record = { type, subdomain, value: parts.slice(2).join(' '), proxied: false };
-            break;
-        case 'CNAME':
-            record = { 
-                type, 
-                subdomain, 
-                value: parts[2], 
-                proxied: parts[3] === 'proxied' // True if "proxied"
-            };
-            break;
-        case 'MX':
-            record = { type, subdomain, value: parts[2], priority: parseInt(parts[1], 10) };
-            break;
-        default:
-            throw new Error(`Unsupported DNS record type: ${type}`);
+    if (recordType === 'MX') {
+        return {
+            type: recordType,
+            subdomain: subdomain,
+            value: parts[2],
+            priority: parts[1] // MX records include priority as second part
+        };
     }
 
-    return record;
+    if (recordType === 'CNAME') {
+        return {
+            type: recordType,
+            subdomain: subdomain,
+            value: parts[2],
+            proxied: parts[3] === 'proxied' // CNAME record may include proxy status
+        };
+    }
+
+    return {
+        type: recordType,
+        subdomain: subdomain,
+        value: parts.slice(2).join(' ')
+    };
 }
 
 function isValidDNSRecord(record) {
@@ -65,12 +66,11 @@ async function addDNSRecord(record) {
         name: `${record.subdomain}.is-cod.in`,
         content: record.value,
         ttl: 1,
-        proxied: record.type === 'CNAME' ? record.proxied : false,
+        proxied: record.type === 'CNAME' ? record.proxied : false // Proxy status for CNAME
     };
 
-    // For MX records, include the priority
     if (record.type === 'MX') {
-        data.priority = record.priority;
+        data.priority = record.priority; // Include priority for MX records
     }
 
     try {
