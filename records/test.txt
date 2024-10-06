@@ -1,4 +1,4 @@
 A test 192.0.2.1
 CNAME test target.com dns_only
-MX test 10 mailserver.com
+MX test mailserver.com 10
 TXT test "text record"
