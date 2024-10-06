@@ -28,11 +28,30 @@ async function processPullRequest() {
 
 function parseDNSRecord(content, subdomain) {
     const parts = content.split(' ');
-    return {
-        type: parts[0],
-        subdomain: subdomain,
-        value: parts.slice(2).join(' ')
-    };
+    const type = parts[0].toUpperCase();
+    let record;
+
+    switch (type) {
+        case 'A':
+        case 'TXT':
+            record = { type, subdomain, value: parts.slice(2).join(' '), proxied: false };
+            break;
+        case 'CNAME':
+            record = { 
+                type, 
+                subdomain, 
+                value: parts[2], 
+                proxied: parts[3] === 'proxied' // True if "proxied"
+            };
+            break;
+        case 'MX':
+            record = { type, subdomain, value: parts[2], priority: parseInt(parts[1], 10) };
+            break;
+        default:
+            throw new Error(`Unsupported DNS record type: ${type}`);
+    }
+
+    return record;
 }
 
 function isValidDNSRecord(record) {
@@ -46,8 +65,13 @@ async function addDNSRecord(record) {
         name: `${record.subdomain}.is-cod.in`,
         content: record.value,
         ttl: 1,
-        proxied: false
+        proxied: record.type === 'CNAME' ? record.proxied : false,
     };
+
+    // For MX records, include the priority
+    if (record.type === 'MX') {
+        data.priority = record.priority;
+    }
 
     try {
         const response = await axios.post(CLOUDFLARE_API_URL, data, {
