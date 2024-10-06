@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "strict": false,
+    // Add any other necessary options based on project requirements
+  }
+}
