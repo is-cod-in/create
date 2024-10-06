@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-const CLOUDFLARE_API_URL = `https://api.cloudflare.com/client/v4/zones/bdae6f399c757c2326b0539fe18151a2/dns_records`;
+const CLOUDFLARE_API_URL = `https://api.cloudflare.com/client/v4/zones/YOUR_ZONE_ID/dns_records`;
 
 async function processPullRequest() {
     const recordsDir = path.join(__dirname, 'records');
@@ -28,36 +28,34 @@ async function processPullRequest() {
 
 function parseDNSRecord(content, subdomain) {
     const parts = content.split(' ');
-    const recordType = parts[0];
 
-    if (recordType === 'MX') {
-        return {
-            type: recordType,
-            subdomain: subdomain,
-            value: parts[2],
-            priority: parts[1] // Priority for MX records
-        };
+    if (parts.length < 3) {
+        console.error(`Insufficient parts for DNS record: ${content}`);
+        return null;
     }
 
-    if (recordType === 'CNAME') {
-        return {
-            type: recordType,
-            subdomain: subdomain,
-            value: parts[2],
-            proxied: parts[3] === 'proxied' // Proxy status for CNAME
-        };
+    const recordType = parts[0].toUpperCase();
+    const record = { type: recordType, subdomain };
+
+    if (recordType === 'MX' && parts.length === 4) {
+        record.value = parts[2];
+        record.priority = parseInt(parts[1], 10); // Priority should be a number
+    } else if (recordType === 'CNAME' && parts.length >= 3) {
+        record.value = parts[2];
+        record.proxied = parts[3] === 'proxied'; // Boolean for proxy status
+    } else if (['A', 'TXT'].includes(recordType) && parts.length >= 3) {
+        record.value = parts.slice(2).join(' ');
+    } else {
+        console.error(`Invalid DNS record format: ${content}`);
+        return null;
     }
 
-    return {
-        type: recordType,
-        subdomain: subdomain,
-        value: parts.slice(2).join(' ')
-    };
+    return record;
 }
 
 function isValidDNSRecord(record) {
     const validTypes = ['A', 'CNAME', 'MX', 'TXT'];
-    return validTypes.includes(record.type) && record.subdomain !== 'is-cod.in';
+    return record && validTypes.includes(record.type) && record.subdomain !== 'is-cod.in';
 }
 
 async function addDNSRecord(record) {
@@ -66,18 +64,20 @@ async function addDNSRecord(record) {
         name: `${record.subdomain}.is-cod.in`,
         content: record.value,
         ttl: 1,
-        proxied: record.type === 'CNAME' ? record.proxied : false
+        proxied: record.type === 'CNAME' ? record.proxied : false,
     };
 
     if (record.type === 'MX') {
         data.priority = record.priority; // Include priority for MX records
     }
 
+    console.log(`Attempting to add DNS record: ${JSON.stringify(data)}`);
+
     try {
         const response = await axios.post(CLOUDFLARE_API_URL, data, {
             headers: {
                 'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             }
         });
 
